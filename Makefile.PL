@@ -6,7 +6,7 @@ use warnings;
 use Config;
 use ExtUtils::MakeMaker qw{WriteMakefile prompt};
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 
 my $vers = '';
 
@@ -61,6 +61,8 @@ WriteMakefile (
 	$] >= 5.005 ? (
 		AUTHOR => 'Tom Wyant (wyant@cpan.org)',
 		ABSTRACT => 'Fetch astronomical data from SIMBAD 4.',
+		(ExtUtils::MakeMaker->VERSION >= 6.31 ?
+		    (LICENSE => 'perl') : ())
 		) : (),
 	);
 

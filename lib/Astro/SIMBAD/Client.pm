@@ -11,21 +11,13 @@ Astro::SIMBAD::Client - Fetch astronomical data from SIMBAD 4.
 =head1 NOTICE
 
 As of SIMBAD4 version 1.019a released 26-Mar-2007, 'vo' web service
-queries have begun returning data. But I<caveat user>, at least until
-stability is demonstrated.
+(SOAP) queries have begun returning data, and have worked ever since.
 
 Beginning with Astro::SIMBAD::Client version 0.006_01, FORMAT_VO_BASIC
 returns decimal degrees for right ascension and declination. This was
 always the intention, but it was impossible to test the requisite format
 changes until the SIMBAD4 web service started returning data in response
 to 'vo' queries.
-
-As of about 16-Oct-2007, the url_query method is unable to return
-VOTable data. This appears to be due to a bug introduced on that date by
-SIMBAD4 release 1.052, and fixed by 1.053 on 18-Oct-2007 (wow! fast!).
-Astro::SIMBAD::Client responded by marking the corresponding tests
-'todo' in release 0.009 on 17-Oct-2007, and making them real tests again
-in release 0.010.
 
 =head1 DESCRIPTION
 
@@ -81,7 +73,7 @@ use SOAP::Lite;
 use URI::Escape;			# Comes with libwww-perl
 use XML::DoubleEncodedEntities;
 
-our $VERSION = '0.010';
+our $VERSION = '0.011';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -963,7 +955,7 @@ eod
 	my $self = shift;
 	my $parser = shift;
 	if ($parser && !ref $parser) {
-	    my ($pkg, $code, $file) =
+	    my ($pkg, $code) =
 		$self->_parse_subroutine_name ($parser);
 	    unless ($parser = $pkg->can ($code) or !$self->get ('autoload')) {
 		_load_module ($pkg);
@@ -987,30 +979,23 @@ sub _get_parser {
     $self->_get_coderef ($self->get ('parser')->{$type});
 }
 
-{	# begin local symbol block.
-
-    my %tried = ('.pm' => 'No such module');
-
+{	# Local symbol block. Oh, for 5.10 and state variables.
+    my %error;
+    my %rslt;
     sub _load_module {
-	my $pkg = shift;
-	(my $file = $pkg) =~ s|::|/|g;
-	$file .= '.pm';
-	unless ($INC{$file} || $tried{$file}) {
-	    eval {require $file};
-	    if ($@) {
-		$tried{$file} = $@;
-	    }
-	}
-	$tried{$file} and croak "Error - Unable to load $pkg";
+	my  ($module) = @_;
+	exists $error{$module} and croak $error{$module};
+	exists $rslt{$module} and return $rslt{$module};
+	$rslt{$module} = eval "require $module";
+	$@ and croak ($error{$module} = $@);
+	return $rslt{$module};
     }
+}	# End local symbol block.
 
-}	# end local symbol block.
-
-#	($package, $subroutine, $file) = $self->_parse_subroutine_name ($name);
+#	($package, $subroutine) = $self->_parse_subroutine_name ($name);
 #
 #	This method parses the given name, and returns the package name
-#	in which the subroutine is defined, the subroutine name, and the
-#	file name of the package in which the subroutine resides.  If
+#	in which the subroutine is defined and the subroutine name. If
 #	the $name is a bare subroutine name, the package is the calling
 #	package unless that package contains no such subroutine but
 #	$self->can($name) is true, in which case the package is
@@ -1037,7 +1022,7 @@ Error - '$parser' yields undefined package name.
 eod
 	@parts = split '::', $pkg;
     }
-    return wantarray ? ($pkg, $code, join ('/', @parts) . '.pm') : $pkg;
+    return wantarray ? ($pkg, $code) : $pkg;
 }
 
 sub _retrieve {

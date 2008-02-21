@@ -8,7 +8,7 @@ use warnings;
 use Config;
 use ExtUtils::MakeMaker qw{WriteMakefile prompt};
 
-our $VERSION = '0.007';
+our $VERSION = '0.008';
 
 my $vers = '';
 
@@ -49,12 +49,14 @@ eod
     @exe_files = map {"bin/$_"} @exe_files;
 }
 
+(my $mmv = ExtUtils::MakeMaker->VERSION) =~ s/_//g;
 WriteMakefile (
 	NAME => 'Astro::SIMBAD::Client',
 	VERSION_FROM => 'lib/Astro/SIMBAD/Client.pm',
 	PREREQ_PM => {
 	    'HTML::Entities'	=> 0,
 	    'LWP::UserAgent'	=> 0,
+	    'Scalar::Util'	=> 1.01,	# Not in Perl 5.6.
 	    'SOAP::Lite'	=> 0,
 	    'URI::Escape'	=> 0,
 	    'XML::DoubleEncodedEntities' => 1.0,
@@ -66,7 +68,7 @@ WriteMakefile (
 	$] >= 5.005 ? (
 		AUTHOR => 'Tom Wyant (wyant@cpan.org)',
 		ABSTRACT => 'Fetch astronomical data from SIMBAD 4.',
-		(ExtUtils::MakeMaker->VERSION >= 6.31 ?
+		($mmv >= 6.31 ?
 		    (LICENSE => 'perl') : ())
 		) : (),
 	);

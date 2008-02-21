@@ -15,6 +15,13 @@ set type txt
 set parser txt=YAML::Load
 set format txt=FORMAT_TXT_YAML_BASIC
 
+load t/canned.data
+
+echo <<eod
+
+The following tests use the query (SOAP) interface
+eod
+
 query id Arcturus
 
 count
@@ -22,37 +29,40 @@ want 1
 test query id Arcturus (txt) - number of objects returned
 
 deref 0 name
-want <<eod
-NAME ARCTURUS
-eod
+want_load arcturus name
 test query id Arcturus (txt) - name
 
 deref 0 ra
-want 213.9153
+want_load arcturus ra
 test query id Arcturus (txt) - right ascension
 
 deref 0 dec
-want 19.1824103
+want_load arcturus dec
 test query id Arcturus (txt) - declination
 
 deref 0 plx
-want 88.85
+want_load arcturus plx
 test query id Arcturus (txt) - parallax
 
 deref 0 pm 0
-want -1093.43
+want_load arcturus pmra
 test query id Arcturus (txt) - proper motion in right ascension
 
 deref 0 pm 1
-want -1999.43
+want_load arcturus pmdec
 test query id Arcturus (txt) - proper motion in declination
 
 deref 0 radial
-want -5.2
+want_load arcturus radial
 test query id Arcturus (txt) - radial velocity in recession
 
 clear
 set parser script=YAML::Load
+
+echo <<eod
+
+The following tests use the script interface
+eod
 
 script <<eod
 format obj "---\nname: '%idlist(NAME|1)'\ntype: '%otype'\nlong: '%otypelist'\nra: %coord(d;A)\ndec: %coord(d;D)\nplx: %plx(V)\npm:\n  - %pm(A)\n  - %pm(D)\nradial: %rv(V)\nredshift: %rv(Z)\nspec: %sptype(S)\nbmag: %fluxlist(B)[%flux(F)]\nvmag: %fluxlist(V)[%flux(F)]\nident:\n%idlist[  - '%*'\n]"
@@ -64,37 +74,40 @@ want 1
 test script 'query id Arcturus' - number of objects returned
 
 deref 0 name
-want <<eod
-NAME ARCTURUS
-eod
+want_load arcturus name
 test script 'query id Arcturus' - name
 
 deref 0 ra
-want 213.9153
+want_load arcturus ra
 test script 'query id Arcturus' - right ascension
 
 deref 0 dec
-want 19.1824103
+want_load arcturus dec
 test script 'query id Arcturus' - declination
 
 deref 0 plx
-want 88.85
+want_load arcturus plx
 test script 'query id Arcturus' - parallax
 
 deref 0 pm 0
-want -1093.43
+want_load arcturus pmra
 test script 'query id Arcturus' - proper motion in right ascension
 
 deref 0 pm 1
-want -1999.43
+want_load arcturus pmdec
 test script 'query id Arcturus' - proper motion in declination
 
 deref 0 radial
-want -5.2
+want_load arcturus radial
 test script 'query id Arcturus' - radial velocity in recession
 
 
 clear
+
+echo <<eod
+
+The following tests use the script_file interface
+eod
 
 script_file t/arcturus.yaml
 
@@ -103,32 +116,30 @@ want 1
 test script_file t/arcturus.yaml - number of objects returned
 
 deref 0 name
-want <<eod
-NAME ARCTURUS
-eod
+want_load arcturus name
 test script_file t/arcturus.yaml - name
 
 deref 0 ra
-want 213.9153
+want_load arcturus ra
 test script_file t/arcturus.yaml - right ascension
 
 deref 0 dec
-want 19.1824103
+want_load arcturus dec
 test script_file t/arcturus.yaml - declination
 
 deref 0 plx
-want 88.85
+want_load arcturus plx
 test script_file t/arcturus.yaml - parallax
 
 deref 0 pm 0
-want -1093.43
+want_load arcturus pmra
 test script_file t/arcturus.yaml - proper motion in right ascension
 
 deref 0 pm 1
-want -1999.43
+want_load arcturus pmdec
 test script_file t/arcturus.yaml - proper motion in declination
 
 deref 0 radial
-want -5.2
+want_load arcturus radial
 test script_file t/arcturus.yaml - radial velocity in recession
 

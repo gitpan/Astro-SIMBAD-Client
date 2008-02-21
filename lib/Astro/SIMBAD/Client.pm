@@ -10,18 +10,22 @@ Astro::SIMBAD::Client - Fetch astronomical data from SIMBAD 4.
 
 =head1 NOTICE
 
-As of SIMBAD4 version 1.019a released 26-Mar-2007, 'vo' web service
-(SOAP) queries have begun returning data, and have worked ever since.
+The current release adds the L</url_args> hash attribute, which can be
+used to supply default arguments to the url_query() method. This is
+initially empty. I was tempted to have its initial value be {coodisp1 =>
+'d'}, since this package typically prefers decimal representations of
+degrees to sexagesimal ones, but the current behavior has been around
+long enough that I was reluctant to change it. And (at least as of
+SIMBAD4 1.071 08-Feb-2008) there appears to be no way to modify VOTable
+output this way.
 
-Beginning with Astro::SIMBAD::Client version 0.006_01, FORMAT_VO_BASIC
-returns decimal degrees for right ascension and declination. This was
-always the intention, but it was impossible to test the requisite format
-changes until the SIMBAD4 web service started returning data in response
-to 'vo' queries.
+The current release also adds the L</delay> attribute, which controls
+the minimum interval (in seconds) between requests to a given SIMBAD
+server.
 
 =head1 DESCRIPTION
 
-This package implements the SOAP query interface to version 4 of the
+This package implements several query interfaces to version 4 of the
 SIMBAD on-line astronomical catalog, as documented at
 L<http://simbad.u-strasbg.fr/simbad4.htx>. B<This package will not work
 with SIMBAD version 3.> Its primary purpose is to obtain SIMBAD data,
@@ -40,11 +44,7 @@ takes a file name.
 - Queries may be made using the web services (SOAP) interface. The
 query() method implements this, and queryObjectByBib,
 queryObjectByCoord, and queryObjectById have been provided as
-convenience methods. The documentation speaks of this functionality as
-under development. As of December 13 2006 'txt' queries work as
-advertised, but 'vo' queries return empty VOTables. The 'vo' queries
-started working again with SIMBAD4 1.019a on March 26, 2007, but
-I<Caveat user.>
+convenience methods.
 
 Astro::SIMBAD::Client is object-oriented, with the object supplying not
 only the SIMBAD server name, but the default format and output type for
@@ -69,11 +69,21 @@ package Astro::SIMBAD::Client;
 use Carp;				# Standard
 use LWP::UserAgent;			# Comes with libwww-perl
 use HTTP::Request::Common qw{POST};	# Comes with libwww-perl
+use Scalar::Util qw{looks_like_number};
 use SOAP::Lite;
 use URI::Escape;			# Comes with libwww-perl
 use XML::DoubleEncodedEntities;
 
-our $VERSION = '0.011';
+my $have_time_hires;
+BEGIN {
+    eval {
+	require Time::HiRes;
+	Time::HiRes->import (qw{time sleep});
+	$have_time_hires = 1;
+    }
+}
+
+our $VERSION = '0.012';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -133,6 +143,7 @@ use constant FORMAT_VO_BASIC => join ',', qw{
 my %static = (
     autoload => 1,
     debug => 0,
+    delay => 3,
     format => {
 	txt => FORMAT_TXT_YAML_BASIC,
 	vo => FORMAT_VO_BASIC,
@@ -144,9 +155,10 @@ my %static = (
 	script => '',
     },
     post => 1,
-    type => 'txt',
 ##    server => 'simweb.u-strasbg.fr',
     server => 'simbad.u-strasbg.fr',
+    type => 'txt',
+    url_args => {},
     verbatim => 0,
 );
 
@@ -163,6 +175,23 @@ sub new {
     my $self = bless {}, $class;
     $self->set (%static, @_);
     return $self;
+}
+
+=item $string = $simbad->agent ();
+
+This method retrieves the user agent string used to identify this
+package in queries to SIMBAD. This string will be the default string for
+LWP::UserAgent, with this package name and version number appended in
+parentheses. This method is exposed for the curious.
+
+=cut
+
+{
+    my $agent_string;
+    sub agent {
+	$agent_string ||= join (' ', LWP::UserAgent->_agent,
+	    __PACKAGE__ . '/' . $VERSION);
+    }
 }
 
 =item @attribs = $simbad->attributes ();
@@ -541,6 +570,7 @@ typically the day before (or of) a SIMBAD4 upgrade.
 	    $parser = $self->_get_parser ($args[$type]);
 	}
 	SOAP::Lite->import (+trace => $debug ? 'all' : '-all');
+	$self->_delay ();
 ##	$debug and SOAP::Trace->import ('all');
 	my $resp = Astro::SIMBAD::Client::WSQueryInterfaceService->$method (
 	    $self->get ('server'), @args);
@@ -627,8 +657,7 @@ after 'Release:' (case-insensitive).
 
 sub release {
     my $self = shift;
-    my $ua = LWP::UserAgent->new ();
-    my $rslt = $ua->get ('http://' . $self->{server} . '/simbad/');
+    my $rslt = $self->_retrieve ('http://' . $self->{server} . '/simbad/');
     $rslt->is_success or croak "Error - ", $rslt->status_line;
     my ($rls) = $rslt->content =~
 	m{Release:.*?</td>.*?<td.*?>(.*?)</td>}sxi
@@ -681,10 +710,6 @@ to the caller.
 	my $self = shift;
 	my $debug = $self->get ('debug');
 	my $script = shift;
-##    if (my $format = $self->get ('format')->{script}) {
-##	$format =~ s/\n//gm;
-##	$script = 'format obj "' . $format . "\"\n\n" . $script;
-##    }
 
 	$escaper ||= URI::Escape->can ('uri_escape_utf8') ||
 	    URI::Escape->can ('uri_escape') || croak <<eod;
@@ -696,8 +721,7 @@ eod
 	my $server = $self->get ('server');
 	my $url = "http://$server/simbad/sim-script?" .
 	    'submit=submit+script&script=' . $script;
-	my $ua = LWP::UserAgent->new ();
-	my $resp = $ua->get ($url);
+	my $resp = $self->_retrieve ($url);
 
 	$resp->is_success or croak $resp->status_line;
 
@@ -736,14 +760,14 @@ sub script_file {
 
     my $server = $self->get ('server');
     my $url = "http://$server/simbad/sim-script";
-    my $ua = LWP::UserAgent->new ();
     my $rqst = POST $url, 
 	Content_Type => 'form-data',
 	Content => [
 	    submit => 'submit file',
-	    CriteriaFile => [$file, undef],	# May need to specify Content_Type => application/octet-stream.
+	    CriteriaFile => [$file, undef],
+    	    # May need to specify Content_Type => application/octet-stream.
 	];
-    my $resp = $ua->request ($rqst);
+    my $resp = $self->_retrieve ($rqst);
 
     $resp->is_success or croak $resp->status_line;
 
@@ -772,12 +796,22 @@ it sets the default value of the attribute.
 
 {	# Begin local symbol block.
 
+    my $ckpn = sub {
+	looks_like_number ($_[2]) && $_[2] >= 0
+	    or croak "Attribute '$_[1]' must be a non-negative number";
+	+$_[2];
+    };
+
     my %mutator = (
 	format => \&_set_hash,
 	parser => \&_set_hash,
+	url_args => \&_set_hash,
     );
 
     my %transform = (
+	delay => ($have_time_hires ?
+	    $ckpn :
+	    sub {+sprintf '%d', $ckpn->(@_) + .5}),
 	format => sub {
 	    my ($self, $name, $val, $key) = @_;
 	    if ($val !~ m/\W/ && (my $code = eval {
@@ -914,6 +948,10 @@ Error - url_query needs an even number of arguments after the query
         type.
 eod
 	my %args = @_;
+	my $dflt = $self->get ('url_args');
+	foreach my $key (keys %$dflt) {
+	    exists ($args{$key}) or $args{$key} = $dflt->{$key};
+	}
 	unless ($args{'output.format'}) {
 	    my $type = $self->get ('type');
 	    $args{'output.format'} = $type_map{$type} || $type;
@@ -940,6 +978,23 @@ eod
 #
 #	Utility routines
 #
+
+#	$self->_delay
+#
+#	Delays the desired amount of time before issuing the next
+#	query.
+
+{
+    my %last;
+    sub _delay {
+	my $self = shift;
+	my $last = $last{$self->{server}} ||= 0;
+	if ((my $delay = $last + $self->{delay} - time) > 0) {
+	    sleep ($delay);
+	}
+	$last{$self->{server}} = time;
+    }
+}
 
 #	$ref = $self->_get_coderef ($string)
 #
@@ -992,6 +1047,20 @@ sub _get_parser {
     }
 }	# End local symbol block.
 
+#	$ua = _get_user_agent ();
+#
+#	This subroutine returns an LWP::UserAgent object with its agent
+#	string set to the default, with our class name and version
+#	appended in parentheses.
+
+sub _get_user_agent {
+    my $ua = LWP::UserAgent->new ();
+##    $ua->agent ($ua->_agent . ' (' . __PACKAGE__ . ' ' . $VERSION .
+##	')');
+    $ua->agent (&agent);
+    $ua;
+}
+
 #	($package, $subroutine) = $self->_parse_subroutine_name ($name);
 #
 #	This method parses the given name, and returns the package name
@@ -1027,11 +1096,15 @@ eod
 
 sub _retrieve {
     my ($self, $url, $args) = @_;
+    $args ||= {};
     my $debug = $self->get ('debug');
     my $inx = 1;
     my $caller;
-    my $ua = LWP::UserAgent->new ();
-    if ($self->get ('post')) {
+    my $ua = _get_user_agent ();
+    $self->_delay ();
+    if (UNIVERSAL::isa ($url, 'HTTP::Request')) {
+	$ua->request ($url);
+    } elsif ($self->get ('post') && %$args) {
 	if ($debug) {
 	    do {
 		$caller = (caller ($inx++))[3];
@@ -1261,6 +1334,19 @@ that the author makes no claim what will happen if it is non-zero.
 
 The default value is 0.
 
+=item delay (integer)
+
+This attribute sets the minimum delay in seconds between requests, so as
+not to overload the SIMBAD server. If Time::HiRes can be loaded, you can
+set delays in fractions of a second; otherwise the delays will be
+rounded to the nearest second.
+
+Delays are from the time of the last request to the server, no matter
+which object issued the request. The delay can be set to 0, but not to a
+negative number.
+
+The default is 3.
+
 =for html <a name="format"></a>
 
 =item format (hash)
@@ -1358,6 +1444,24 @@ to treat an unrecognized type as 'txt'.
 
 The default is 'txt'.
 
+=for html <a name="url_args"></a>
+
+=item url_args (hash)
+
+This attribute specifies default arguments for url_query method. These
+will be applied only if not specified in the method call. Any argument
+given in the SIMBAD documentation may be specified. For example:
+
+ $simbad->set (url_args => {coodisp1 => d});
+
+causes the query to return coordinates in degrees and decimals rather
+than in sexagesimal (degrees, minutes, and seconds or hours, minutes,
+and seconds, as the case may be.) Note, however, that VOTable output
+does not seem to be affected by this.
+
+The initial default for this attribute is an empty hash; that is, no
+arguments are defaulted by this mechanism.
+
 =for html <a name="verbatim"></a>
 
 =item verbatim (boolean)
@@ -1378,8 +1482,8 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT
 
-Copyright 2006, 2007 by Thomas R. Wyant, III (F<wyant at cpan dot org>).
-All rights reserved.
+Copyright 2006, 2007, 2008 by Thomas R. Wyant, III (F<wyant at cpan dot
+org>).  All rights reserved.
 
 This module is free software; you can use it, redistribute it and/or
 modify it under the same terms as Perl itself. Please see

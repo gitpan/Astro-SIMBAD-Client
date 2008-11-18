@@ -8,17 +8,6 @@ Astro::SIMBAD::Client - Fetch astronomical data from SIMBAD 4.
  my $simbad = Astro::SIMBAD::Client->new ();
  print $simbad->query (id => 'Arcturus');
 
-=head1 NOTICE
-
-The current release tacks a change in the data returned by %OTYPE in
-SIMBAD4 1.092 dated 21-Jul-2008; they got rid of the trailing blanks,
-which affected at least the developer tests).
-
-Other than that, the only change is the addition of a LICENSE section
-to the POD.
-
-For previous changes, see the Changes file.
-
 =head1 DESCRIPTION
 
 This package implements several query interfaces to version 4 of the
@@ -83,7 +72,7 @@ BEGIN {
     }
 }
 
-our $VERSION = '0.015';
+our $VERSION = '0.016';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -217,7 +206,7 @@ retrieve the default value.
 sub get {
     my $self = shift;
     croak "Error - First argument must be an @{[__PACKAGE__]} object"
-	unless UNIVERSAL::isa ($self, __PACKAGE__);
+	unless eval {$self->isa(__PACKAGE__)};
     $self = \%static unless ref $self;
     my $name = shift;
     croak "Error - Attribute '$name' is unknown"
@@ -846,7 +835,7 @@ it sets the default value of the attribute.
     sub set {
 	my $self = shift;
 	croak "Error - First argument must be an @{[__PACKAGE__]} object"
-	    unless UNIVERSAL::isa ($self, __PACKAGE__);
+	    unless eval {$self->isa(__PACKAGE__)};
 	while (@_) {
 	    my $name = shift;
 	    croak "Error - Attribute '$name' is unknown"
@@ -1102,7 +1091,13 @@ sub _retrieve {
     my $caller;
     my $ua = _get_user_agent ();
     $self->_delay ();
-    if (UNIVERSAL::isa ($url, 'HTTP::Request')) {
+    if (eval {$url->isa('HTTP::Request')}) {
+	if ($debug) {
+	    do {
+		$caller = (caller ($inx++))[3];
+	    } while $caller eq '(eval)';
+	    print "Debug $caller executing ", $url->as_string, "\n";
+	}
 	$ua->request ($url);
     } elsif ($self->get ('post') && %$args) {
 	if ($debug) {

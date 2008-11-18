@@ -72,7 +72,7 @@ sub test {
 	} elsif ($verb eq 'clear') {
 	    $got = $ref = undef;
 	} elsif ($verb eq 'count') {
-	    if (!defined $got) {
+	    if ($skip || !defined $got) {
 		$got = undef;
 	    } elsif (ref $got eq 'ARRAY') {
 		$got = @$got;
@@ -130,6 +130,8 @@ sub test {
 	    } else {
 		$canned = undef;
 	    }
+	} elsif ($verb eq 'noskip') {
+	    $skip = undef;
 	} elsif ($verb eq 'require') {
 	    $skip = @args > 1 ? ("Can not load any of " . join (', ', @args)) :
 		@args ? "Can not load @args" : '';
@@ -187,6 +189,9 @@ eod
 		if ($@) {
 		    warn $@;
 		    $got = $@;
+		    if ($got =~ m/^(5\d+)/) {
+			$skip = $got;
+		    }
 		}
 		$ref = $got if ref $got;
 	    }

@@ -1,6 +1,6 @@
 ---
 name: Astro-SIMBAD-Client
-version: 0.016
+version: 0.017
 author:
   - Tom Wyant (wyant at cpan dot org)
 abstract: Fetch astronomical data from SIMBAD 4.
@@ -19,7 +19,7 @@ dynamic_config: 1
 provides:
   Astro::SIMBAD::Client:
     file: lib/Astro/SIMBAD/Client.pm
-    version: 0.016
+    version: 0.017
   Astro::SIMBAD::Client::WSQueryInterfaceService:
     file: lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm
     version: 0.016

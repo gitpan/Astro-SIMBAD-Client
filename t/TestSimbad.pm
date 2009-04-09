@@ -63,7 +63,7 @@ sub test {
 	if ($verb eq 'loaded') {
 	    $loaded{shift @args} or next;
 	    $verb = shift @args;
-	    $verb eq 'test' || $verb eq 'todo'
+	    ($verb eq 'test' || $verb eq 'todo')
 		and die "'test' or 'todo' in 'loaded' not supported";
 	}
 	if ($verb eq 'static') {
@@ -85,7 +85,9 @@ sub test {
 	    } elsif (ref $got eq 'ARRAY') {
 		$got = @$got;
 	    } else {
-		die "Error - \$got does not refer to a list.\n";
+		warn "Error - \$got is $got, not a list reference.\n";
+		$got = undef;
+##		die "Error - \$got does not refer to a list.\n";
 	    }
 	} elsif ($verb eq 'deref' || $verb eq 'deref_curr') {
 	    $got = $ref unless $verb eq 'deref_curr';
@@ -124,7 +126,7 @@ sub test {
 			    $test = undef;
 			} 
 		    }
-		    defined $test && $test eq $target
+		    (defined $test && $test eq $target)
 		       and do {$got = $item; last;};
 		}
 	    }
@@ -133,8 +135,13 @@ sub test {
 		my $fn = $args[0];
 		open (my $fh, '<', $fn) or die "Failed to open $fn: $!\n";
 		local $/ = undef;
-		$canned = eval scalar <$fh>;
+		# Perl::Critic does not like string evals, but the
+		# following needs to load arbitrary data dumped with
+		# Data::Dumper. I could switch to YAML, but that is
+		# not a core module.
+		$canned = eval scalar <$fh>;	## no critic (ProhibitStringyEval)
 		$@ and die $@;
+		close $fh;
 	    } else {
 		$canned = undef;
 	    }
@@ -157,7 +164,7 @@ sub test {
 	    foreach ($want, $got) {
 		ref $_ and next;
 		chomp $_;
-		m/(.+?)\s+$/ and numberp ($1) and $_ = $1;
+		m/(.+?)\s+$/ and numberp ($1 . '') and $_ = $1;
 	    }
 	    print <<eod;
 #
@@ -211,6 +218,7 @@ eod
 	    die "Error - $class does not support method $verb\n";
 	}
     }
+    return;
 }
 
 
@@ -223,7 +231,7 @@ sub groom {
 }
 
 sub numberp {
-    $_[0] =~ m/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/
+    return ($_[0] =~ m/^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/);
 }
 
 1;

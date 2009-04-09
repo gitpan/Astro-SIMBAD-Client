@@ -1,6 +1,6 @@
 ---
 name: Astro-SIMBAD-Client
-version: 0.017
+version: 0.018
 author:
   - Tom Wyant (wyant at cpan dot org)
 abstract: Fetch astronomical data from SIMBAD 4.
@@ -14,16 +14,20 @@ requires:
   Scalar::Util: 1.01
   URI::Escape: 0
   XML::DoubleEncodedEntities: 1
-  perl: 5.006
+  perl: 5.008
 dynamic_config: 1
 provides:
   Astro::SIMBAD::Client:
     file: lib/Astro/SIMBAD/Client.pm
-    version: 0.017
+    version: 0.018
   Astro::SIMBAD::Client::WSQueryInterfaceService:
     file: lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm
-    version: 0.016
-generated_by: Module::Build version 0.3
+    version: 0.018
+generated_by: Module::Build version 0.32
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
   version: 1.2
+no_index:
+  directory:
+    - inc
+    - t

@@ -8,6 +8,17 @@ Astro::SIMBAD::Client - Fetch astronomical data from SIMBAD 4.
  my $simbad = Astro::SIMBAD::Client->new ();
  print $simbad->query (id => 'Arcturus');
 
+=head1 NOTICE
+
+As of SIMBAD4 1.117 (April 9 2009), the URL query service returns
+coordinates in decimal degrees when VOTable output is requested, rather
+than degrees minutes and seconds. Format control seems still not to work
+on VOTable output.
+
+In terms of this package, this means that if the C<type> attribute is
+set to 'vo', the url_query() method will return positions in decimal
+degrees.
+
 =head1 DESCRIPTION
 
 This package implements several query interfaces to version 4 of the
@@ -46,13 +57,13 @@ The following methods should be considered public:
 
 =cut
 
+package Astro::SIMBAD::Client;
+
 use 5.008;	# Because of MailTools, used by SOAP::Lite.
 		# Otherwise it would be 5.006 because of 'our'.
 
 use strict;
 use warnings;
-
-package Astro::SIMBAD::Client;
 
 use Carp;				# Standard
 use LWP::UserAgent;			# Comes with libwww-perl
@@ -72,7 +83,7 @@ BEGIN {
     }
 }
 
-our $VERSION = '0.017';
+our $VERSION = '0.018';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -158,7 +169,10 @@ passed to the set() method once the object is instantiated.
 
 =cut
 
-sub new {
+# The set() method does the unpacking. CAVEAT: do _NOT_ modify the
+# contents of @_, as this will be seen by the caller. Modifying @_
+# itself is fine.
+sub new {	## no critic (RequireArgUnpacking)
     my $class = shift;
     $class = ref $class if ref $class;
     my $self = bless {}, $class;
@@ -178,8 +192,8 @@ parentheses. This method is exposed for the curious.
 {
     my $agent_string;
     sub agent {
-	$agent_string ||= join (' ', LWP::UserAgent->_agent,
-	    __PACKAGE__ . '/' . $VERSION);
+	return ($agent_string ||= join (' ', LWP::UserAgent->_agent,
+	    __PACKAGE__ . '/' . $VERSION));
     }
 }
 
@@ -192,7 +206,7 @@ even as a subroutine.
 =cut
 
 sub attributes {
-    wantarray ? sort keys %static : [sort keys %static]
+    return wantarray ? sort keys %static : [sort keys %static]
 }
 
 =item $value = $simbad->get ($attrib);
@@ -239,9 +253,10 @@ parser for 'txt'-type queries:
 =cut
 
 sub Parse_TXT_Simple {
+    my $text = shift;
     my $obj = {};
     my @data;
-    foreach (split '\s*\n', $_[0]) {
+    foreach (split '\s*\n', $text) {
 	next unless $_;
 	if (m/^-+$/) {
 	    $obj = {};
@@ -252,7 +267,7 @@ sub Parse_TXT_Simple {
 	    $obj->{$name} = $val;
 	}
     }
-    @data;
+    return @data;
 }
 
 
@@ -349,19 +364,19 @@ parser for 'vo'-type queries:
 		    shift;
 		    my $tag = shift;
 		    my $item = [$tag, {@_}];
-		    push @{$tree[$#tree]}, $item;
+		    push @{$tree[-1]}, $item;
 		    push @tree, $item;
 		},
 		Char => sub {
-		    push @{$tree[$#tree]}, $_[1];
+		    push @{$tree[-1]}, $_[1];
 		},
 		End => sub {
 		    my $tag = $_[1];
 		    die <<eod unless @tree > 1;
 Error - Unmatched end tag </$tag>
 eod
-		    die <<eod unless $tag eq $tree[$#tree][0];
-Error - End tag </$tag> does not match start tag <$tree[$#tree][0]>
+		    die <<eod unless $tag eq $tree[-1][0];
+Error - End tag </$tag> does not match start tag <$tree[-1][0]>
 eod
 
 #	From here to the end of the subroutine is devoted to detecting
@@ -429,7 +444,7 @@ eod
 		    @table;
 		},
 	    });
-	map {$_ ? $psr->parse ($_) : ()} split '(?=<\?xml)', $data
+	return map {$_ ? $psr->parse ($_) : ()} split '(?=<\?xml)', $data
     }
 
 }	# End of local symbol block.
@@ -451,6 +466,7 @@ sub _strip_empty {
 	    splice @$ref, $inx, 1 unless $val =~ m/\S/ms;
 	}
     }
+    return;
 }
 
 =item $result = $simbad->query ($query => @args);
@@ -537,15 +553,13 @@ typically the day before (or of) a SIMBAD4 upgrade.
 
 
     sub query {
-	my $self = shift;
-	my $query = shift;
+	my ($self, $query, @args) = @_;
 	croak "Error - Illegal query type '$query'"
 	    unless $query_args{$query};
 	my $method = $query_args{$query}{method};
 	croak "Programming error - Illegal query $query method $method"
 	    unless Astro::SIMBAD::Client::WSQueryInterfaceService->can ($method);
 	my $debug = $self->get ('debug');
-	my @args = @_;
 	my $parser;
 	if (defined (my $type = $query_args{$query}{type})) {
 	    $args[$type] ||= $self->get ('type');
@@ -584,7 +598,7 @@ See the query() documentation for more information.
 
 sub queryObjectByBib {
     my $self = shift;
-    $self->query (bib => @_);
+    return $self->query (bib => @_);
 }
 
 =item $value = $simbad->queryObjectByCoord ($coord, $radius, $format, $type);
@@ -599,7 +613,7 @@ See the query() documentation for more information.
 
 sub queryObjectByCoord {
     my $self = shift;
-    $self->query (coo => @_);
+    return $self->query (coo => @_);
 }
 
 =item $value = $simbad->queryObjectById ($id, $format, $type);
@@ -614,7 +628,7 @@ See the query() documentation for more information.
 
 sub queryObjectById {
     my $self = shift;
-    $self->query (id => @_);
+    return $self->query (id => @_);
 }
 
 =item $release = $simbad->release ();
@@ -786,7 +800,7 @@ it sets the default value of the attribute.
 {	# Begin local symbol block.
 
     my $ckpn = sub {
-	looks_like_number ($_[2]) && $_[2] >= 0
+	(looks_like_number ($_[2]) && $_[2] >= 0)
 	    or croak "Attribute '$_[1]' must be a non-negative number";
 	+$_[2];
     };
@@ -833,16 +847,16 @@ it sets the default value of the attribute.
     }
 
     sub set {
-	my $self = shift;
+	my ($self, @args) = @_;
 	croak "Error - First argument must be an @{[__PACKAGE__]} object"
 	    unless eval {$self->isa(__PACKAGE__)};
-	while (@_) {
-	    my $name = shift;
+	while (@args) {
+	    my $name = shift @args;
 	    croak "Error - Attribute '$name' is unknown"
 		unless exists $mutator{$name};
-	    $mutator{$name}->($self, $name, shift);
+	    $mutator{$name}->($self, $name, shift @args);
 	}
-	$self;
+	return $self;
     }
 
     sub _set_hash {
@@ -865,6 +879,7 @@ it sets the default value of the attribute.
 		$hash->{$name}{$key} = '';
 	    }
 	}
+	return;
     }
 
 }	# End local symbol block.
@@ -926,17 +941,20 @@ onto the end of the URL and a GET is done.
 	$type_unmap{$value} = $key;
     }
 
-    sub url_query {
-	my $self = shift;
-	my $query = shift;
-	my $debug = $self->get ('debug');
-	my $url = 'http://' . $self->get ('server') . '/simbad/sim-' .
-	    $query;
+    # Perl::Critic objects to the use of @_ (rather than values 
+    # unpacked from it) but the parity check lets me give a less
+    # unfriendly error message. CAVEAT: do NOT modify the contents
+    # of @_, since this will be seen by the caller. Modifying @_
+    # itself is fine.
+    sub url_query {	## no critic (RequireArgUnpacking)
 	@_ % 2 and croak <<eod;
 Error - url_query needs an even number of arguments after the query
         type.
 eod
-	my %args = @_;
+	my ($self, $query, %args) = @_;
+	my $debug = $self->get ('debug');
+	my $url = 'http://' . $self->get ('server') . '/simbad/sim-' .
+	    $query;
 	my $dflt = $self->get ('url_args');
 	foreach my $key (keys %$dflt) {
 	    exists ($args{$key}) or $args{$key} = $dflt->{$key};
@@ -957,7 +975,7 @@ eod
 		if $parser;
 	}
 
-	$resp;
+	return $resp;
     }
 
 }	# End local symbol block.
@@ -981,7 +999,7 @@ eod
 	if ((my $delay = $last + $self->{delay} - time) > 0) {
 	    sleep ($delay);
 	}
-	$last{$self->{server}} = time;
+	return ($last{$self->{server}} = time);
     }
 }
 
@@ -1001,13 +1019,13 @@ eod
 	if ($parser && !ref $parser) {
 	    my ($pkg, $code) =
 		$self->_parse_subroutine_name ($parser);
-	    unless ($parser = $pkg->can ($code) or !$self->get ('autoload')) {
+	    unless (($parser = $pkg->can ($code)) || !$self->get ('autoload')) {
 		_load_module ($pkg);
 		$parser = $pkg->can ($code);
 	    }
 	    $parser or croak "Error - ${pkg}::$code undefined";
 	}
-	$parser;
+	return $parser;
     }
 
 }
@@ -1020,7 +1038,7 @@ eod
 
 sub _get_parser {
     my ($self, $type) = @_;
-    $self->_get_coderef ($self->get ('parser')->{$type});
+    return $self->_get_coderef ($self->get ('parser')->{$type});
 }
 
 #	$rslt = _load_module($name)
@@ -1054,7 +1072,7 @@ sub _get_user_agent {
 ##    $ua->agent ($ua->_agent . ' (' . __PACKAGE__ . ' ' . $VERSION .
 ##	')');
     $ua->agent (&agent);
-    $ua;
+    return $ua;
 }
 
 #	($package, $subroutine) = $self->_parse_subroutine_name ($name);
@@ -1105,7 +1123,7 @@ sub _retrieve {
 	    } while $caller eq '(eval)';
 	    print "Debug $caller executing ", $url->as_string, "\n";
 	}
-	$ua->request ($url);
+	return $ua->request ($url);
     } elsif ($self->get ('post') && %$args) {
 	if ($debug) {
 	    do {
@@ -1116,7 +1134,7 @@ sub _retrieve {
 		print "    $key => $args->{$key}\n";
 	    }
 	}
-	$ua->post ($url, $args);
+	return $ua->post ($url, $args);
     } else {
 	my $join = '?';
 	foreach my $key (sort keys %$args) {
@@ -1130,7 +1148,7 @@ sub _retrieve {
 	    } while $caller eq '(eval)';
 	    print "Debug $caller getting from $url\n";
 	}
-	$ua->get ($url);
+	return $ua->get ($url);
     }
 }
 
@@ -1339,8 +1357,8 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT
 
-Copyright 2006, 2007, 2008 by Thomas R. Wyant, III (F<wyant at cpan dot
-org>).  All rights reserved.
+Copyright 2006, 2007, 2008, 2009 by Thomas R. Wyant, III (F<wyant at
+cpan dot org>).  All rights reserved.
 
 =head1 LICENSE
  

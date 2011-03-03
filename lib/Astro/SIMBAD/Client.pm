@@ -76,14 +76,14 @@ use Astro::SIMBAD::Client::WSQueryInterfaceService;
 
 my $have_time_hires;
 BEGIN {
-    eval {
+    $have_time_hires = eval {
 	require Time::HiRes;
 	Time::HiRes->import (qw{time sleep});
-	$have_time_hires = 1;
+	1;
     }
 }
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -332,8 +332,7 @@ parser for 'vo'-type queries:
     my $xml_parser;
     
     foreach (qw{XML::Parser XML::Parser::Lite}) {
-	eval {_load_module ($_)};
-	next if $@;
+	eval { _load_module( $_ ); 1 } or next;
 	$xml_parser = $_;
 	last;
     }
@@ -711,7 +710,7 @@ to the caller.
 
     sub script {
 	my $self = shift;
-	my $debug = $self->get ('debug');
+###	my $debug = $self->get ('debug');
 	my $script = shift;
 
 	$escaper ||= URI::Escape->can ('uri_escape_utf8') ||
@@ -952,7 +951,7 @@ Error - url_query needs an even number of arguments after the query
         type.
 eod
 	my ($self, $query, %args) = @_;
-	my $debug = $self->get ('debug');
+###	my $debug = $self->get ('debug');
 	my $url = 'http://' . $self->get ('server') . '/simbad/sim-' .
 	    $query;
 	my $dflt = $self->get ('url_args');
@@ -1355,13 +1354,18 @@ The default is 0 (i.e. false)
 
 Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
-=head1 COPYRIGHT
+=head1 COPYRIGHT AND LICENSE
 
-Copyright 2006, 2007, 2008, 2009 by Thomas R. Wyant, III (F<wyant at
-cpan dot org>).  All rights reserved.
+Copyright (C) 2005-2011 by Thomas R. Wyant, III
 
-=head1 LICENSE
- 
-This module is free software; you can use it, redistribute it and/or
-modify it under the same terms as Perl itself. Please see
-L<http://perldoc.perl.org/index-licence.html> for the current licenses.
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl 5.10.0. For more details, see the full text
+of the licenses in the directory LICENSES.
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+
+=cut
+
+# ex: set textwidth=72 :

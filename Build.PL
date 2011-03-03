@@ -3,10 +3,13 @@ use 5.008;
 use strict;
 use warnings;
 
+use lib qw{ inc };
+
+use Astro::SIMBAD::Client::Build;
 use Module::Build;
 use Config;
 
-our $VERSION = '0.018';
+our $VERSION = '0.019';
 
 (my $mbv = Module::Build->VERSION) =~ s/_//g;
 
@@ -33,11 +36,17 @@ my %attr = (
 
 $mbv >= 0.28 and $attr{meta_merge} = {
     no_index => {
-	directory => [qw{inc t}],
+	directory => [qw{ inc t xt }],
+    },
+    resources => {
+	bugtracker => 'https://rt.cpan.org/Public/Dist/Display.html?Name=Astro-SIMBAD-Client',
     },
 };
 
-my $bldr = Module::Build->new (%attr);
+$mbv >= 0.34
+    and $attr{auto_configure_requires} = 0;	# Don't require Module::Build
+
+my $bldr = Astro::SIMBAD::Client::Build->new (%attr);
 
 my %opt = $bldr->args();
 

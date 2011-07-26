@@ -4,7 +4,7 @@ author:
   - 'Tom Wyant (wyant at cpan dot org)'
 build_requires: {}
 dynamic_config: 1
-generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.110930'
+generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.110930001'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -18,10 +18,10 @@ no_index:
 provides:
   Astro::SIMBAD::Client:
     file: lib/Astro/SIMBAD/Client.pm
-    version: 0.021
+    version: 0.022
   Astro::SIMBAD::Client::WSQueryInterfaceService:
     file: lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm
-    version: 0.021
+    version: 0.022
 requires:
   HTML::Entities: 0
   LWP::UserAgent: 0
@@ -33,4 +33,4 @@ requires:
 resources:
   bugtracker: https://rt.cpan.org/Public/Dist/Display.html?Name=Astro-SIMBAD-Client
   license: http://dev.perl.org/licenses/
-version: 0.021
+version: 0.022

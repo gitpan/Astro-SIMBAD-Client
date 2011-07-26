@@ -14,35 +14,34 @@ BEGIN {
     };
 }
 
-our $VERSION = '0.018';
-
 add_stopwords (<DATA>);
 
 all_pod_files_spelling_ok ();
 
 1;
 __DATA__
+arraysize
 CGI
 CPAN
-IDs
-Ident
-Jul
-SIMBAD
-Oct
-VOTable
-VOTables
-Wyant
-YAML
-arraysize
 datatype
 fr
+hoc
+Ident
+IDs
+Jul
+merchantability
 metadata
+namespace
+namespaces
 obj
+parsers
+Oct
 preprocessed
 queryObjectByBib
 queryObjectByCoord
 queryObjectById
 sexagesimal
+SIMBAD
 simbad
 simbadc
 simweb
@@ -51,3 +50,7 @@ todo
 txt
 vo
 vohash
+votable
+votables
+Wyant
+YAML

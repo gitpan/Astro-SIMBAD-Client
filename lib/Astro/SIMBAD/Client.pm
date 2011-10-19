@@ -59,18 +59,20 @@ The following methods should be considered public:
 
 package Astro::SIMBAD::Client;
 
-use 5.008;	# Because of MailTools, used by SOAP::Lite.
-		# Otherwise it would be 5.006 because of 'our'.
+# We require Perl 5.008 because of MailTools, used by SOAP::Lite.
+# Otherwise it would be 5.006 because of 'our'.
+
+use 5.008;
 
 use strict;
 use warnings;
 
-use Carp;				# Standard
-use LWP::UserAgent;			# Comes with libwww-perl
-use HTTP::Request::Common qw{POST};	# Comes with libwww-perl
-use Scalar::Util qw{looks_like_number};
+use Carp;
+use LWP::UserAgent;
+use HTTP::Request::Common qw{POST};
+use Scalar::Util 1.01 qw{looks_like_number};
 use SOAP::Lite;
-use URI::Escape;			# Comes with libwww-perl
+use URI::Escape;
 use XML::DoubleEncodedEntities;
 use Astro::SIMBAD::Client::WSQueryInterfaceService;
 
@@ -83,7 +85,7 @@ BEGIN {
     }
 }
 
-our $VERSION = '0.022';
+our $VERSION = '0.022_01';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 

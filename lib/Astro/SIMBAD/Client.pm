@@ -85,7 +85,7 @@ BEGIN {
     }
 }
 
-our $VERSION = '0.022_01';
+our $VERSION = '0.022_02';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -768,7 +768,7 @@ sub script_file {
 	Content_Type => 'form-data',
 	Content => [
 	    submit => 'submit file',
-	    CriteriaFile => [$file, undef],
+	    scriptFile => [$file, undef],
     	    # May need to specify Content_Type => application/octet-stream.
 	];
     my $resp = $self->_retrieve ($rqst);

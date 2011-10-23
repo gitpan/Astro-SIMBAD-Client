@@ -41,11 +41,11 @@
    "provides" : {
       "Astro::SIMBAD::Client" : {
          "file" : "lib/Astro/SIMBAD/Client.pm",
-         "version" : "0.022_01"
+         "version" : "0.022_02"
       },
       "Astro::SIMBAD::Client::WSQueryInterfaceService" : {
          "file" : "lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm",
-         "version" : "0.022_01"
+         "version" : "0.022_02"
       }
    },
    "release_status" : "testing",
@@ -57,5 +57,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.022_01"
+   "version" : "0.022_02"
 }

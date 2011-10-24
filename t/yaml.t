@@ -10,6 +10,13 @@ use Astro::SIMBAD::Client::Test;
 
 access;
 
+# If I choose to try more of the possible YAML modules, I need to do
+# three things:
+# * Add the possible modules to load_module, below
+# * Add the appropriate module_loaded wherever needed below.
+# * Add the possible modules to the @hide array in
+#   inc/Astro/SIMBAD/Client/Build.pm
+
 load_module qw{ YAML YAML::Syck };
 
 call set => type => 'txt';
@@ -105,18 +112,26 @@ test canned( arcturus => 'radial' ),
 
 
 
+# Maybe we're skipping because of a problem with SOAP; so we clear
+# the skip indicator. We re-require after this, because maybe we're
+# skipping because of missing modules.
+
 clear;
+load_module qw{ YAML YAML::Syck };
+module_loaded 'YAML',       call => set => parser => 'script=YAML::Load';
+module_loaded 'YAML::Syck', call => set => parser => 'script=YAML::Syck::Load';
+
 echo <<'EOD';
 
 The following tests use the script_file interface
 EOD
 
 call script_file => 't/arcturus.yaml';
-{
-    my $rtn = returned_value;
-    $rtn = defined $rtn ? "'$rtn'" : 'undef';
-    diag "Debug - script_file( 't/arcturus.yaml' ) returned $rtn";
-}
+#{
+#    my $rtn = returned_value;
+#    $rtn = defined $rtn ? "'$rtn'" : 'undef';
+#    diag "Debug - script_file( 't/arcturus.yaml' ) returned $rtn";
+#}
 count;
 test 1, 'script_file t/arcturus.yaml - number of objects returned';
 
@@ -152,3 +167,5 @@ end;
 
 
 1;
+
+# ex: set textwidth=72 :

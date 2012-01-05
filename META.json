@@ -4,7 +4,7 @@
       "Tom Wyant (wyant at cpan dot org)"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.38, CPAN::Meta::Converter version 2.112621",
+   "generated_by" : "Module::Build version 0.38, CPAN::Meta::Converter version 2.113640",
    "license" : [
       "perl_5"
    ],
@@ -41,11 +41,11 @@
    "provides" : {
       "Astro::SIMBAD::Client" : {
          "file" : "lib/Astro/SIMBAD/Client.pm",
-         "version" : "0.024"
+         "version" : "0.025"
       },
       "Astro::SIMBAD::Client::WSQueryInterfaceService" : {
          "file" : "lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm",
-         "version" : "0.024"
+         "version" : "0.025"
       }
    },
    "release_status" : "stable",
@@ -57,5 +57,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.024"
+   "version" : "0.025"
 }

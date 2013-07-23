@@ -10,6 +10,7 @@ eg/votable
 eg/votree
 inc/Astro/SIMBAD/Client/Build.pm
 inc/Astro/SIMBAD/Client/Meta.pm
+inc/Astro/SIMBAD/Client/Recommend.pm
 inc/Astro/SIMBAD/Client/Test.pm
 lib/Astro/SIMBAD/Client.pm
 lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm
@@ -17,7 +18,7 @@ LICENSES/Artistic
 LICENSES/Copying
 Makefile.PL
 MANIFEST			This list of files
-MANIFEST.SKIP
+META.json
 META.yml
 README
 t/arcturus.simple
@@ -29,6 +30,7 @@ t/release.t
 t/simple.t
 t/vo.t
 t/yaml.t
+xt/author/basic.t
 xt/author/changes.t
 xt/author/critic.t
 xt/author/executable.t
@@ -39,5 +41,4 @@ xt/author/pod.t
 xt/author/pod_coverage.t
 xt/author/pod_spelling.t
 xt/author/services.t
-xt/author/soap_vo_status.t
-META.json
+xt/author/soap_vo_status.optional

@@ -10,22 +10,20 @@ Astro::SIMBAD::Client - Fetch astronomical data from SIMBAD 4.
 
 =head1 NOTICE
 
-About October 24 2012 the C<query*()> methods began failing when C<type>
-attribute was set to C<'vo'>. A look at the SOAP packets (particularly
-the response packet, which appears to indicate a Java error on the
-server) seems to say the problem is in the server side. I have informed
-the University of Strasbourg of my findings, but so far have no
-response. They may have other fish to fry, since between that date and
-October 30 the server version has gone from 1.199 to 1.201.
+As of release 0.026_01, the L<SOAP::Lite|SOAP::Lite> module
+is optional. If it is not installed, though, the C<query()> method will
+not work.
 
-Calls to C<query*()> methods with the C<type> attribute set to some
-other value than C<'vo'> still work, as do C<'vo'> queries by other
-mechanisms, specifically the C<script*()> methods and the C<url_query()>
-method.
+This change is because the L<SOAP::Lite|SOAP::Lite> module continues to
+fail to install without force under Perl 5.18, and because I have failed
+to get version 1.0 (the current version) to install without force under
+any version of Perl (because of the new declared-but-apparently-optional
+dependency on DIME::Tools, which also fails to install without force).
 
-Since I have, to my knowledge, no control over this, I have marked the
-corresponding tests C<TODO>, to prevent installation failures.
-B<Caveat user>.
+Given all this, I do not want to force people to use SOAP. If you
+decide to install L<SOAP::Lite|SOAP::Lite> after installing this module,
+you do not need to re-install this module to take advantage of
+L<SOAP::Lite|SOAP::Lite>.
 
 =head1 DESCRIPTION
 
@@ -48,7 +46,10 @@ takes a file name.
 - Queries may be made using the web services (SOAP) interface. The
 query() method implements this, and queryObjectByBib,
 queryObjectByCoord, and queryObjectById have been provided as
-convenience methods.
+convenience methods. As of version 0.026_01, the
+L<SOAP::Lite|SOAP::Lite> module, which this functionality needs, is no
+longer required; you will need to install it separately to use this
+portion of the functionality.
 
 Astro::SIMBAD::Client is object-oriented, with the object supplying not
 only the SIMBAD server name, but the default format and output type for
@@ -79,10 +80,10 @@ use Carp;
 use LWP::UserAgent;
 use HTTP::Request::Common qw{POST};
 use Scalar::Util 1.01 qw{looks_like_number};
-use SOAP::Lite;
+# use SOAP::Lite;
 use URI::Escape;
 use XML::DoubleEncodedEntities;
-use Astro::SIMBAD::Client::WSQueryInterfaceService;
+# use Astro::SIMBAD::Client::WSQueryInterfaceService;
 
 my $have_time_hires;
 BEGIN {
@@ -93,11 +94,19 @@ BEGIN {
     }
 }
 
-our $VERSION = '0.026';
+our $VERSION = '0.026_01';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
-use constant FORMAT_TXT_SIMPLE_BASIC => <<'eod';
+# TODO replace this with s///r if we ever get to the point where we
+# require Perl 5.13.2 or greater.
+sub _strip_returns {
+    my ( $data ) = @_;
+    $data =~ s/ \n //smxg;
+    return $data;
+}
+
+use constant FORMAT_TXT_SIMPLE_BASIC => _strip_returns( <<'EOD' );
 ---\n
 name: %IDLIST(NAME|1)\n
 type: %OTYPE\n
@@ -113,9 +122,9 @@ spec: %SP(S)\n
 bmag: %FLUXLIST(B)[%flux(F)]\n
 vmag: %FLUXLIST(V)[%flux(F)]\n
 ident: %IDLIST[%*,]
-eod
+EOD
 
-use constant FORMAT_TXT_YAML_BASIC => <<'eod';
+use constant FORMAT_TXT_YAML_BASIC => _strip_returns( <<'EOD' );
 ---\n
 name: '%IDLIST(NAME|1)'\n
 type: '%OTYPE'\n
@@ -132,7 +141,7 @@ spec: %SP(S)\n
 bmag: %FLUXLIST(B)[%flux(F)]\n
 vmag: %FLUXLIST(V)[%flux(F)]\n
 ident:\n%IDLIST[  - '%*'\n]
-eod
+EOD
 
 #	Documentation errors/omissions:
 #	%PLX:
@@ -294,6 +303,11 @@ the full spec (see L<http://www.ivoa.net/Documents/latest/VOT.html>).
 It is oriented toward returning E<lt>TABLEDATAE<gt> contents, and the
 metadata that can reasonably be associated with those contents.
 
+B<NOTE> that as of version 0.026_01, the requisite modules
+to support VO format are B<not> required. If you need VO format you will
+need to install either L<XML::Parser|XML::Parser> or
+C<XML::Parser::Lite>, which comes with L<SOAP::Lite|SOAP::Lite>.
+
 The return is a list of anonymous hashes, one per E<lt>TABLEE<gt>. Each
 hash contains two keys:
 
@@ -349,6 +363,9 @@ parser for 'vo'-type queries:
 
     sub Parse_VO_Table {
 	my $data = shift;
+
+	defined $xml_parser
+	    or croak 'Error - No XML parser available. Need XML::Parser or XML::Parser::Lite';
 
 	my $root;
 	my @tree;
@@ -482,7 +499,7 @@ sub _strip_empty {
 
 This method issues a web services (SOAP) query to the SIMBAD database.
 The $query specifies a SIMBAD query method, and the @args are the
-arguments for that method.  Valid $query values and the corresponding
+arguments for that method. Valid $query values and the corresponding
 SIMBAD methods and arguments are:
 
   bib => queryObjectByBib ($bibcode, $format, $type)
@@ -514,17 +531,12 @@ so the caller will need to be prepared to deal with malformed data.
 
 Otherwise, the result of the query is returned as-is.
 
-I<Caveat:> Chapter 1 of the SIMBAD 4 Users Guide at
-L<http://simbad.u-strasbg.fr/guide/ch01.htx> speaks of the Web Services
-as 'to be developed'. They are documented in the help at
-L<http://simbad.u-strasbg.fr/simbad/sim-help?Page=simbad4>, and this
-method implements that interface to the best of my ability. But 'vo'
-queries began returning empty VOTables on or about December 3 2006, and
-as of January 26 2007 still behave this way. They started working again
-with SIMBAD4 1.019a on March 26 2007.
-
-The 'txt' queries appear to work, except for occasional failures,
-typically the day before (or of) a SIMBAD4 upgrade.
+B<NOTE> that this functionality makes use of the
+L<SOAP::Lite|SOAP::Lite> module. As of version 0.026_01 of
+C<Astro::SIMBAD::Client>, L<SOAP::Lite|SOAP::Lite> is not a prerequisite
+of this module. If you wish to use the C<query()> method, you will have
+to install L<SOAP::Lite|SOAP::Lite> separately. This can be done after
+C<Astro::SIMBAD::Client> is installed.
 
 =cut
 
@@ -563,6 +575,11 @@ typically the day before (or of) a SIMBAD4 upgrade.
 
     sub query {
 	my ($self, $query, @args) = @_;
+	eval { _load_module( 'SOAP::Lite' ); 1 }
+	    or croak 'Error - query() requires SOAP::Lite';
+	eval { _load_module(
+		'Astro::SIMBAD::Client::WSQueryInterfaceService' ); 1 }
+	    or croak "Programming Error - Can not load Astro::SIMBAD::Client::WSQueryInterfaceService: $@";
 	croak "Error - Illegal query type '$query'"
 	    unless $query_args{$query};
 	my $method = $query_args{$query}{method};
@@ -1275,8 +1292,8 @@ The default specifies formats for output types 'txt' and 'vo'. The
 'txt' default is FORMAT_TXT_YAML_BASIC; the 'vo' default is
 FORMAT_VO_BASIC.
 
-There is no way to specify a default format for the 'script' or
-'script_file' methods.
+There is no way to specify a default format for the 'script_file'
+method.
 
 =for html <a name="parser"></a>
 
@@ -1366,7 +1383,7 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2012 by Thomas R. Wyant, III
+Copyright (C) 2005-2013 by Thomas R. Wyant, III
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl 5.10.0. For more details, see the full text

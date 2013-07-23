@@ -5,18 +5,25 @@ use warnings;
 
 use base qw{ Module::Build };
 
-our $VERSION = '0.026';
+our $VERSION = '0.026_01';
 
 use Carp;
 
 my @optionals_dir = qw{ xt author optionals };
 
 # The hidden modules are as follows:
+# * SOAP::Lite is optional, but is used by the query() method
 # * Time::HiRes is optional to Astro::SIMBAD::Client
+# * XML::Parser is optional, but is used to process VO queries
+# * XML::Parser::Lite is optional, but used if XML::Parser is not
+#   available
 # * The YAML module is used by t/yaml.t, which contains logic to
 #   skip tests if it can be loaded.
 my @hide = qw{
+    SOAP::Lite
     Time::HiRes
+    XML::Parser
+    XML::Parser::Lite
     YAML
 };
 
@@ -206,7 +213,7 @@ Thomas R. Wyant, III F<wyant at cpan dot org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2009-2012 by Thomas R. Wyant, III
+Copyright (C) 2009-2013 by Thomas R. Wyant, III
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl 5.10.0. For more details, see the full text

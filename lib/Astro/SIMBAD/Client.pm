@@ -10,20 +10,34 @@ Astro::SIMBAD::Client - Fetch astronomical data from SIMBAD 4.
 
 =head1 NOTICE
 
-As of release 0.026_01, the L<SOAP::Lite|SOAP::Lite> module
-is optional. If it is not installed, though, the C<query()> method will
-not work.
+As of release 0.027_01 the SOAP interface is deprecated. The
+University of Strasbourg has announced that this interface will not be
+supported after April 1 2014.
 
-This change is because the L<SOAP::Lite|SOAP::Lite> module continues to
-fail to install without force under Perl 5.18, and because I have failed
-to get version 1.0 (the current version) to install without force under
-any version of Perl (because of the new declared-but-apparently-optional
-dependency on DIME::Tools, which also fails to install without force).
+The deprecation schedule for this module is as follows:
 
-Given all this, I do not want to force people to use SOAP. If you
-decide to install L<SOAP::Lite|SOAP::Lite> after installing this module,
-you do not need to re-install this module to take advantage of
-L<SOAP::Lite|SOAP::Lite>.
+=over
+
+=item Immediately
+
+The first use of the SOAP interface will generate a deprecation warning.
+
+=item First release of 2014
+
+Every use of the SOAP interface will generate a warning.
+
+=item First release after April 1 2014
+
+Every use of the SOAP interface will generate a fatal error.
+
+=item First release after July 1 2014
+
+SOAP code will be removed.
+
+=back
+
+Also effective immediately, all tests of the SOAP interface are marked
+TODO.
 
 =head1 DESCRIPTION
 
@@ -46,10 +60,9 @@ takes a file name.
 - Queries may be made using the web services (SOAP) interface. The
 query() method implements this, and queryObjectByBib,
 queryObjectByCoord, and queryObjectById have been provided as
-convenience methods. As of version 0.026_01, the
-L<SOAP::Lite|SOAP::Lite> module, which this functionality needs, is no
-longer required; you will need to install it separately to use this
-portion of the functionality.
+convenience methods. As of version 0.027_01, SOAP queries are
+deprecated. See the L<NOTICE|/NOTICE> section above for the deprecation
+schedule.
 
 Astro::SIMBAD::Client is object-oriented, with the object supplying not
 only the SIMBAD server name, but the default format and output type for
@@ -80,8 +93,7 @@ use Carp;
 use LWP::UserAgent;
 use HTTP::Request::Common qw{POST};
 use Scalar::Util 1.01 qw{looks_like_number};
-# use SOAP::Lite;
-use URI::Escape;
+use URI::Escape ();
 use XML::DoubleEncodedEntities;
 # use Astro::SIMBAD::Client::WSQueryInterfaceService;
 
@@ -91,10 +103,14 @@ BEGIN {
 	require Time::HiRes;
 	Time::HiRes->import (qw{time sleep});
 	1;
-    }
+    };
+
+    *_escape_uri = URI::Escape->can( 'uri_escape_utf8' )
+	|| URI::Escape->can( 'uri_escape' )
+	|| sub { return $_[0] };
 }
 
-our $VERSION = '0.027';
+our $VERSION = '0.027_01';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -305,8 +321,7 @@ metadata that can reasonably be associated with those contents.
 
 B<NOTE> that as of version 0.026_01, the requisite modules
 to support VO format are B<not> required. If you need VO format you will
-need to install either L<XML::Parser|XML::Parser> or
-C<XML::Parser::Lite>, which comes with L<SOAP::Lite|SOAP::Lite>.
+need to install L<XML::Parser|XML::Parser> or L<XML::Parser::Lite>
 
 The return is a list of anonymous hashes, one per E<lt>TABLEE<gt>. Each
 hash contains two keys:
@@ -340,9 +355,7 @@ All values are returned as provided by the XML parser; no further
 decoding is done. Specifically, the datatype and arraysize attributes
 are ignored.
 
-This parser is based on XML::Parser if that is available. Otherwise it
-uses XML::Parser::Lite, which should be available since it comes with
-SOAP::Lite.
+This parser is based on XML::Parser.
 
 The user would normally not call this directly, but specify it as the
 parser for 'vo'-type queries:
@@ -354,7 +367,8 @@ parser for 'vo'-type queries:
 {	# Begin local symbol block.
 
     my $xml_parser;
-    
+
+    # TODO get rid of XML::Parser::Lite when you get rid of SOAP
     foreach (qw{XML::Parser XML::Parser::Lite}) {
 	eval { _load_module( $_ ); 1 } or next;
 	$xml_parser = $_;
@@ -497,6 +511,10 @@ sub _strip_empty {
 
 =item $result = $simbad->query ($query => @args);
 
+This method is B<deprecated>, and will cease to work in April 2014.
+Please choose a method that does not use SOAP. See the L<NOTICE|/NOTICE>
+above for details.
+
 This method issues a web services (SOAP) query to the SIMBAD database.
 The $query specifies a SIMBAD query method, and the @args are the
 arguments for that method. Valid $query values and the corresponding
@@ -575,6 +593,7 @@ C<Astro::SIMBAD::Client> is installed.
 
     sub query {
 	my ($self, $query, @args) = @_;
+	$self->_deprecation_notice( method => 'query', 'a non-SOAP method' );
 	eval { _load_module( 'SOAP::Lite' ); 1 }
 	    or croak 'Error - query() requires SOAP::Lite';
 	eval { _load_module(
@@ -614,6 +633,10 @@ C<Astro::SIMBAD::Client> is installed.
 
 =item $value = $simbad->queryObjectByBib ($bibcode, $format, $type);
 
+This method is B<deprecated>, and will cease to work in April 2014.
+Please choose a method that does not use SOAP. See the L<NOTICE|/NOTICE>
+above for details.
+
 This method is just a convenience wrapper for
 
  $value = $simbad->query (bib => $bibcode, $format, $type);
@@ -629,6 +652,10 @@ sub queryObjectByBib {
 
 =item $value = $simbad->queryObjectByCoord ($coord, $radius, $format, $type);
 
+This method is B<deprecated>, and will cease to work in April 2014.
+Please choose a method that does not use SOAP. See the L<NOTICE|/NOTICE>
+above for details.
+
 This method is just a convenience wrapper for
 
  $value = $simbad->query (coo => $coord, $radius, $format, $type);
@@ -643,6 +670,10 @@ sub queryObjectByCoord {
 }
 
 =item $value = $simbad->queryObjectById ($id, $format, $type);
+
+This method is B<deprecated>, and will cease to work in April 2014.
+Please choose a method that does not use SOAP. See the L<NOTICE|/NOTICE>
+above for details.
 
 This method is just a convenience wrapper for
 
@@ -731,47 +762,31 @@ to the caller.
 
 =cut
 
-{
+sub script {
+    my ( $self, $script ) = @_;
+    my $server = $self->get ('server');
 
-    my $escaper;
+    my $url = "http://$server/simbad/sim-script";
 
-    sub script {
-	my ( $self, $script ) = @_;
-###	my $debug = $self->get ('debug');
-	my $server = $self->get ('server');
+    my $resp = $self->_retrieve( $url, {
+	    submit	=> 'submit+script',
+	    script	=> $script,
+	},
+    );
 
-	# Note that at least one difference between doing it this way
-	# (which works) and just using URI->new() (which does not) is
-	# that the latter trims leading and trailing white space, and I
-	# think we need the trailing white space in this case.
+    $resp->is_success or croak $resp->status_line;
 
-	$escaper ||= URI::Escape->can ('uri_escape_utf8') ||
-	    URI::Escape->can ('uri_escape') || croak <<"EOD";
-Error - URI::Escape does not implement uri_escape_utf8() or
-        uri_escape(). Please upgrade.
-EOD
-	$script = $escaper->($script);
-
-	my $url = "http://$server/simbad/sim-script?" .
-	    'submit=submit+script&script=' . $script;
-
-	my $resp = $self->_retrieve ($url);
-
-	$resp->is_success or croak $resp->status_line;
-
-	my $rslt = $resp->content or return;
-	unless ($self->get ('verbatim')) {
-	    $rslt =~ s/.*?::data:+\s*//sm or croak $rslt;
-	}
-	$rslt = XML::DoubleEncodedEntities::decode ($rslt);
-	if (my $parser = $self->_get_parser ('script')) {
+    my $rslt = $resp->content or return;
+    unless ($self->get ('verbatim')) {
+	$rslt =~ s/.*?::data:+\s*//sm or croak $rslt;
+    }
+    $rslt = XML::DoubleEncodedEntities::decode ($rslt);
+    if (my $parser = $self->_get_parser ('script')) {
 ##	$rslt =~ s/.*?::data:+.?$//sm or croak $rslt;
-	    my @rslt = $parser->($rslt);
-	    return wantarray ? @rslt : \@rslt;
-	} else {
-	    return $rslt;
-	}
-
+	my @rslt = $parser->($rslt);
+	return wantarray ? @rslt : \@rslt;
+    } else {
+	return $rslt;
     }
 
 }
@@ -1016,6 +1031,23 @@ eod
 #	Utility routines
 #
 
+#	_callers_caller();
+#
+#	Returns the name of the subroutine that called the caller.
+#	Results undefined if not called from a subroutine nested at
+#	least two deep.
+
+sub _callers_caller {
+    my $inx = 1;
+    my $caller;
+    foreach ( 1 .. 2 ) {
+	do {
+	    $caller = ( caller $inx++ )[3]
+	} while '(eval)' eq $caller;
+    }
+    return $caller;
+}
+
 #	$self->_delay
 #
 #	Delays the desired amount of time before issuing the next
@@ -1031,6 +1063,55 @@ eod
 	}
 	return ($last{$self->{server}} = time);
     }
+}
+
+
+#	$self->_deprecation_notice( $type, $name );
+#
+#	This method centralizes deprecation. Type is 'attribute' or
+#	'method'. Deprecation is driven of the %deprecate hash. Values
+#	are:
+#	    false - no warning
+#	    1 - warn on first use
+#	    2 - warn on each use
+#	    3 - die on each use.
+#
+#	$self->_deprecation_in_progress( $type, $name )
+#
+#	This method returns true if the deprecation is in progress. In
+#	practice this means the %deprecate value is defined.
+
+{
+
+    my %deprecate = (
+	method	=> {
+	    query	=> 1,
+	},
+    );
+
+    sub _deprecation_notice {
+	my ( $self, $type, $name, $repl ) = @_;
+	$deprecate{$type} or return;
+	$deprecate{$type}{$name} or return;
+	my $msg = sprintf 'The %s %s is %s', $name, $type,
+	    $deprecate{$type}{$name} > 2 ? 'removed' : 'deprecated';
+	defined $repl
+	    and $msg .= "; use $repl instead";
+	$deprecate{$type}{$name} >= 3
+	    and croak( $msg );
+	warnings::enabled( 'deprecated' )
+	    and carp( $msg );
+	$deprecate{$type}{$name} == 1
+	    and $deprecate{$type}{$name} = 0;
+	return;
+    }
+
+    sub _deprecation_in_progress {
+	my ( $self, $type, $name ) = @_;
+	$deprecate{$type} or return;
+	return defined $deprecate{$type}{$name};
+    }
+
 }
 
 #	$ref = $self->_get_coderef ($string)
@@ -1138,28 +1219,38 @@ eod
     return wantarray ? ($pkg, $code) : $pkg;
 }
 
+#	my $resp = $self->_retrieve( $url, \%args );
+#
+#	Retrieve the data from the given URL. The \%args argument is
+#	optional. The return is an HTTP::Response object.
+#
+#	The details depend on the arguments and the state of the
+#	invocant as follows:
+#
+#	If $url is an HTTP::Request object, it is executed and the
+#	response returned. Otherwise
+#
+#	If \%args is present and not empty, and the 'post' attribute is
+#	true, an HTTP post() request is done to the URL, sending the
+#	data. Otherwise
+#
+#	If there are arguments they are appended to the URL, and an HTTP
+#	get() is done to the URL.
+
 sub _retrieve {
     my ($self, $url, $args) = @_;
     $args ||= {};
     my $debug = $self->get ('debug');
-    my $inx = 1;
-    my $caller;
     my $ua = _get_user_agent ();
     $self->_delay ();
     if (eval {$url->isa('HTTP::Request')}) {
-	if ($debug) {
-	    do {
-		$caller = (caller ($inx++))[3];
-	    } while $caller eq '(eval)';
-	    print "Debug $caller executing ", $url->as_string, "\n";
-	}
+	$debug
+	    and print 'Debug ', _callers_caller(), 'executing ',
+		$url->as_string, "\n";
 	return $ua->request ($url);
     } elsif ($self->get ('post') && %$args) {
 	if ($debug) {
-	    do {
-		$caller = (caller ($inx++))[3];
-	    } while $caller eq '(eval)';
-	    print "Debug $caller posting to $url\n";
+	    print 'Debug ', _callers_caller(), " posting to $url\n";
 	    foreach my $key (sort keys %$args) {
 		print "    $key => $args->{$key}\n";
 	    }
@@ -1168,17 +1259,13 @@ sub _retrieve {
     } else {
 	my $join = '?';
 	foreach my $key (sort keys %$args) {
-	    $url .= $join . uri_escape ($key) .  '=' . uri_escape (
-		$args->{$key});
+	    $url .= $join . _escape_uri( $key ) .  '=' . _escape_uri (
+		$args->{$key} );
 	    $join = '&';
 	}
-	if ($debug) {
-	    do {
-		$caller = (caller ($inx++))[3];
-	    } while $caller eq '(eval)';
-	    print "Debug $caller getting from $url\n";
-	}
-	return $ua->get ($url);
+	$debug
+	    and print 'Debug ', _callers_caller(), " getting from $url\n";
+	return $ua->get( $url );
     }
 }
 

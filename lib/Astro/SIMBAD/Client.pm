@@ -18,11 +18,7 @@ The deprecation schedule for this module is as follows:
 
 =over
 
-=item Immediately
-
-The first use of the SOAP interface will generate a deprecation warning.
-
-=item First release of 2014
+=item First release of 2014 (0.030)
 
 Every use of the SOAP interface will generate a warning.
 
@@ -110,7 +106,7 @@ BEGIN {
 	|| sub { return $_[0] };
 }
 
-our $VERSION = '0.029';
+our $VERSION = '0.030';
 
 our @CARP_NOT = qw{Astro::SIMBAD::Client::WSQueryInterfaceService};
 
@@ -1085,7 +1081,7 @@ sub _callers_caller {
 
     my %deprecate = (
 	method	=> {
-	    query	=> 1,
+	    query	=> 2,
 	},
     );
 
@@ -1474,7 +1470,7 @@ Thomas R. Wyant, III (F<wyant at cpan dot org>)
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2005-2013 by Thomas R. Wyant, III
+Copyright (C) 2005-2014 by Thomas R. Wyant, III
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl 5.10.0. For more details, see the full text

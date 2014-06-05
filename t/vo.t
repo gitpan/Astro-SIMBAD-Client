@@ -126,6 +126,16 @@ deref 0, 'data';
 count;
 test 1, 'url_query id arcturus (vo) - count of rows';
 
+note <<'EOD';
+
+We do not test for the MAIN_ID when using the url interface. A note from
+SIMBAD support on February 6 2014 says that there is no way to influence
+what SIMBAD returns in a url VO-format query.
+
+EOD
+
+=begin comment
+
 TODO: {
 
     local $TODO = 'Return changed Feb 3 2014. Unable to influence.';
@@ -137,6 +147,10 @@ TODO: {
     # script-based VO-format querues (I used catalog LFT, picked at
     # random). But the VO-format URL query seems insensitive to this. I
     # sent a note to SIMBAD on February 5 2014, and made this a TODO.
+    #
+    # The above-mentioned note says the most recent change in the data
+    # for Arcturus was February 4 2014, which of course does not rule
+    # out a change on the 3rd.
 
     deref 0, data => 0;
     find meta => 1, name => 'MAIN_ID';
@@ -144,6 +158,10 @@ TODO: {
     test canned( arcturus => 'name' ), 'url_query id Arcturus (vo) - name';
 
 }
+
+=end comment
+
+=cut
 
 deref 0, data => 0;
 find meta => 1, name => 'RA_d';
@@ -201,6 +219,47 @@ find meta => 1, name => 'RV_VALUE';
 deref_curr 'value';
 test canned( arcturus => 'radial' ),
     'url_query id Arcturus (vo) - radial velocity';
+
+call set => emulate_soap_queries => 1;
+clear;
+
+echo <<'EOD';
+
+The following tests use the script interface, but emulate SOAP queries.
+EOD
+
+call query => id => 'Arcturus';
+
+count;
+test 1, 'query id Arcturus (vo) - count of tables';
+
+deref 0, 'data';
+count;
+test 1, 'query id arcturus (vo) - count of rows';
+
+deref 0, data => 0, 0, 'value';
+test canned( arcturus => 'name' ), 'query id Arcturus (vo) - name';
+
+deref 0, data => 0, 2, 'value';
+test canned( arcturus => 'ra' ), 'query id Arcturus (vo) - right ascension';
+
+deref 0, data => 0, 3, 'value';
+test canned( arcturus => 'dec' ), 'query id Arcturus (vo) - declination';
+
+deref 0, data => 0, 4, 'value';
+test canned( arcturus => 'plx' ), 'query id Arcturus (vo) - parallax';
+
+deref 0, data => 0, 5, 'value';
+test canned( arcturus => 'pmra' ),
+    'query id Arcturus (vo) - proper motion in right ascension';
+
+deref 0, data => 0, 6, 'value';
+test canned( arcturus => 'pmdec' ),
+    'query id Arcturus (vo) - proper motion in declination';
+
+deref 0, data => 0, 7, 'value';
+test canned( arcturus => 'radial' ),
+    'query id Arcturus (vo) - radial velocity';
 
 end;
 

@@ -3,13 +3,13 @@ abstract: 'Fetch astronomical data from SIMBAD 4.'
 author:
   - 'Tom Wyant (wyant at cpan dot org)'
 build_requires:
-  Test::More: 0.88
+  Test::More: '0.88'
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4204, CPAN::Meta::Converter version 2.133380'
+generated_by: 'Module::Build version 0.4205, CPAN::Meta::Converter version 2.141170'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: Astro-SIMBAD-Client
 no_index:
   directory:
@@ -19,18 +19,18 @@ no_index:
 provides:
   Astro::SIMBAD::Client:
     file: lib/Astro/SIMBAD/Client.pm
-    version: 0.031
+    version: 0.031_01
   Astro::SIMBAD::Client::WSQueryInterfaceService:
     file: lib/Astro/SIMBAD/Client/WSQueryInterfaceService.pm
-    version: 0.031
+    version: 0.031_01
 requires:
-  HTTP::Request::Common: 0
-  LWP::UserAgent: 0
-  Scalar::Util: 1.01
-  URI::Escape: 0
-  XML::DoubleEncodedEntities: 1
-  perl: 5.008
+  HTTP::Request::Common: '0'
+  LWP::UserAgent: '0'
+  Scalar::Util: '1.01'
+  URI::Escape: '0'
+  XML::DoubleEncodedEntities: '1'
+  perl: '5.008'
 resources:
   bugtracker: https://rt.cpan.org/Public/Dist/Display.html?Name=Astro-SIMBAD-Client
   license: http://dev.perl.org/licenses/
-version: 0.031
+version: 0.031_01
